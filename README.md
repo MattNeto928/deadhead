@@ -83,15 +83,27 @@ go install github.com/mattneto928/deadhead/cmd/deadhead@latest
 
 This places `deadhead` (or `deadhead.exe` on Windows) in `$HOME/go/bin`. That directory must be in your `PATH` or the command won't be found after install.
 
-Add it if needed, then restart your terminal:
+If `deadhead` is not found after install, `$HOME/go/bin` is not in your `PATH`. Add it permanently:
 
+**macOS / Linux (zsh)**
 ```bash
-# macOS / Linux - add to ~/.zshrc or ~/.bashrc
-export PATH="$PATH:$HOME/go/bin"
+echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.zshrc
+source ~/.zshrc
+```
 
-# Windows (PowerShell, permanent)
+**macOS / Linux (bash)**
+```bash
+echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+> Running `export PATH=...` directly in the terminal only applies to the current session. Writing it to `~/.zshrc` or `~/.bashrc` makes it permanent.
+
+**Windows (PowerShell, permanent)**
+```powershell
 [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$env:USERPROFILE\go\bin", "User")
 ```
+Restart PowerShell after running this.
 
 Verify:
 ```bash
