@@ -16,4 +16,7 @@ type Flight struct {
 		Time    time.Time `json:"time"`
 		Airport string    `json:"airport"`
 	} `json:"arrival"`
+	IsHiddenCity      bool   `json:"is_hidden_city"`
+	HiddenDestination string `json:"hidden_destination,omitempty"`
+	Layovers          int    `json:"layovers"`
 }

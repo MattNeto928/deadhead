@@ -33,9 +33,12 @@ func NewRequest(fromCity, toCity, fromDay, toDay string, travelers int) (*Reques
 	if err != nil {
 		return nil, errors.New("starting date format invalid, should be yyyy-MM-dd")
 	}
-	toTime, err := time.ParseInLocation("2006-01-02", toDay, time.Local)
-	if err != nil {
-		return nil, errors.New("ending date format invalid, should be yyyy-MM-dd")
+	var toTime time.Time
+	if toDay != "" {
+		toTime, err = time.ParseInLocation("2006-01-02", toDay, time.Local)
+		if err != nil {
+			return nil, errors.New("ending date format invalid, should be yyyy-MM-dd")
+		}
 	}
 	return &Request{
 		HomeCity:     fromCity,

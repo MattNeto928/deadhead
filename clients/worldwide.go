@@ -3,21 +3,23 @@ package clients
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"net/url"
 
-	"github.com/minormending/go-skiplagged/models"
+	"github.com/mattneto928/deadhead/models"
 )
 
-var countryBaseURL = "https://skiplagged.com/api/skipsy.php?from=%s&depart=%s&return=%s&format=v2&counts[adults]=%d&counts[children]=0&_=1611006103100"
+// CountryAPIBase is the base URL for the worldwide flight search endpoint.
+// Override in tests to point at a mock server.
+var CountryAPIBase = "https://skiplagged.com/api/skipsy.php"
 
-// City is a city
+// City represents a destination city returned by the worldwide search.
 type City struct {
 	Name     string   `json:"name"`
 	Airports []string `json:"airports"`
 	Region   string   `json:"region"`
 }
 
-// Trip is a trip
+// Trip represents a single destination option with pricing from the worldwide search.
 type Trip struct {
 	City        string `json:"city"`
 	Cost        int    `json:"cost"`
@@ -25,7 +27,7 @@ type Trip struct {
 	RegularCost int    `json:"regular_cost,omitempty"`
 }
 
-// CountryResponse is a response
+// CountryResponse is the full API response for a worldwide flight search.
 type CountryResponse struct {
 	Cities   map[string]City `json:"cities"`
 	Airports map[string]struct {
@@ -38,10 +40,17 @@ type CountryResponse struct {
 	Duration float64 `json:"duration"`
 }
 
-// GetWorldwideFlightsFromCity gets the possible cities for a trip
+// GetWorldwideFlightsFromCity fetches all possible destination cities from the origin.
 func GetWorldwideFlightsFromCity(req *models.Request) (*CountryResponse, error) {
-	url := fmt.Sprintf(countryBaseURL, req.HomeCity, req.LeavingDay.Format("2006-01-02"), req.ReturningDay.Format("2006-01-02"), req.Travelers)
-	res, err := http.Get(url)
+	rawURL := fmt.Sprintf(
+		"%s?from=%s&depart=%s&return=%s&format=v2&counts[adults]=%d&counts[children]=0&_=1611006103100",
+		CountryAPIBase,
+		url.QueryEscape(req.HomeCity),
+		req.LeavingDay.Format("2006-01-02"),
+		req.ReturningDay.Format("2006-01-02"),
+		req.Travelers,
+	)
+	res, err := HTTPClient.Get(rawURL)
 	if err != nil {
 		return nil, err
 	}

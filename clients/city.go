@@ -3,15 +3,17 @@ package clients
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"net/url"
 	"time"
 
-	"github.com/minormending/go-skiplagged/models"
+	"github.com/mattneto928/deadhead/models"
 )
 
-var cityBaseURL = "https://skiplagged.com/api/search.php?from=%s&to=%s&depart=%s&return=%s&poll=true&format=v3&counts[adults]=%d&counts[children]=0&_=1611006103106"
+// CityAPIBase is the base URL for the city flight search endpoint.
+// Override in tests to point at a mock server.
+var CityAPIBase = "https://skiplagged.com/api/search.php"
 
-// Flight is a flight
+// Flight represents a single flight (which may have multiple segments) returned by the API.
 type Flight struct {
 	Segments []struct {
 		Airline      string `json:"airline"`
@@ -31,7 +33,7 @@ type Flight struct {
 	Data     string `json:"data"`
 }
 
-// InOutBoundFlight is a
+// InOutBoundFlight is an outbound or inbound itinerary entry that references a Flight by key.
 type InOutBoundFlight struct {
 	Data              string `json:"data"`
 	Flight            string `json:"flight"`
@@ -39,7 +41,7 @@ type InOutBoundFlight struct {
 	OneWayPrice       int    `json:"one_way_price,omitempty"`
 }
 
-// CityResponse represents flights for a city
+// CityResponse represents the full API response for a city-pair flight search.
 type CityResponse struct {
 	Airlines map[string]struct {
 		Name string `json:"name"`
@@ -62,10 +64,19 @@ type CityResponse struct {
 	Duration float64 `json:"duration"`
 }
 
-// GetFlightsToCity get trips for a city
+// GetFlightsToCity fetches one-way flight options for a city pair.
+// The return parameter is intentionally left blank to force one-way pricing;
+// passing a return date causes the API to price the trip as round-trip.
 func GetFlightsToCity(req *models.Request) (*CityResponse, error) {
-	url := fmt.Sprintf(cityBaseURL, req.HomeCity, req.TripCity, req.LeavingDay.Format("2006-01-02"), req.ReturningDay.Format("2006-01-02"), req.Travelers)
-	res, err := http.Get(url)
+	rawURL := fmt.Sprintf(
+		"%s?from=%s&to=%s&depart=%s&return=&poll=true&format=v3&counts[adults]=%d&counts[children]=0",
+		CityAPIBase,
+		url.QueryEscape(req.HomeCity),
+		url.QueryEscape(req.TripCity),
+		req.LeavingDay.Format("2006-01-02"),
+		req.Travelers,
+	)
+	res, err := HTTPClient.Get(rawURL)
 	if err != nil {
 		return nil, err
 	}

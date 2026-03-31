@@ -4,7 +4,7 @@ import (
 	"io"
 	"text/template"
 
-	"github.com/minormending/go-skiplagged/skiplagged"
+	"github.com/mattneto928/deadhead/search"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 )
 
 // ToMarkdown writes out the list of summaries
-func ToMarkdown(wr io.Writer, summaries []*skiplagged.CitySummary) error {
+func ToMarkdown(wr io.Writer, summaries []*search.CitySummary) error {
 	t, err := template.New("full").Parse(full)
 	if err != nil {
 		return err
