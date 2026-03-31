@@ -42,12 +42,16 @@ type CountryResponse struct {
 
 // GetWorldwideFlightsFromCity fetches all possible destination cities from the origin.
 func GetWorldwideFlightsFromCity(req *models.Request) (*CountryResponse, error) {
+	returnDate := ""
+	if !req.ReturningDay.IsZero() {
+		returnDate = req.ReturningDay.Format("2006-01-02")
+	}
 	rawURL := fmt.Sprintf(
 		"%s?from=%s&depart=%s&return=%s&format=v2&counts[adults]=%d&counts[children]=0&_=1611006103100",
 		CountryAPIBase,
 		url.QueryEscape(req.HomeCity),
 		req.LeavingDay.Format("2006-01-02"),
-		req.ReturningDay.Format("2006-01-02"),
+		returnDate,
 		req.Travelers,
 	)
 	res, err := HTTPClient.Get(rawURL)

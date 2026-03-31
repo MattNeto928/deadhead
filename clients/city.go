@@ -68,12 +68,17 @@ type CityResponse struct {
 // The return parameter is intentionally left blank to force one-way pricing;
 // passing a return date causes the API to price the trip as round-trip.
 func GetFlightsToCity(req *models.Request) (*CityResponse, error) {
+	returnDate := ""
+	if !req.ReturningDay.IsZero() {
+		returnDate = req.ReturningDay.Format("2006-01-02")
+	}
 	rawURL := fmt.Sprintf(
-		"%s?from=%s&to=%s&depart=%s&return=&poll=true&format=v3&counts[adults]=%d&counts[children]=0",
+		"%s?from=%s&to=%s&depart=%s&return=%s&poll=true&format=v3&counts[adults]=%d&counts[children]=0",
 		CityAPIBase,
 		url.QueryEscape(req.HomeCity),
 		url.QueryEscape(req.TripCity),
 		req.LeavingDay.Format("2006-01-02"),
+		returnDate,
 		req.Travelers,
 	)
 	res, err := HTTPClient.Get(rawURL)

@@ -166,18 +166,19 @@ Options:
 ### One-way to a specific city
 
 ```bash
-deadhead NYC LGW 2026-05-12
+deadhead NYC LAX 2026-05-12
 ```
 
 ```
 Launching browser...
 Browser ready.
-Searching NYC -> LGW on 2026-05-12...
-
-London, England (LGW)  $279 one-way
-  JFK -> LGW  $279  Norse Atlantic UK       6:20 PM -> 6:20 AM
-  EWR -> LGW  $349  Norse Atlantic UK       5:45 PM -> 5:55 AM  (+1 layovers)
-  min outbound: $279
+Searching NYC -> LAX on 2026-05-12...
+Los Angeles, California (LAX)  $126 one-way
+  EWR -> LAX  $126  United Airlines         6:30 PM -> 9:33 PM [HIDDEN-CITY to LAS]
+  JFK -> LAX  $144  JetBlue Airways         6:19 AM -> 9:28 AM
+  JFK -> LAX  $144  JetBlue Airways         7:30 AM -> 10:41 AM
+  JFK -> LAX  $144  Delta Air Lines         8:00 AM -> 11:05 AM
+  min outbound: $126
 
 Search complete. 1 destination with available flights.
 ```
@@ -185,22 +186,23 @@ Search complete. 1 destination with available flights.
 ### Round-trip with departure time filter
 
 ```bash
-deadhead NYC AUS 2026-05-12 2026-05-19 --leave-before 13
+deadhead NYC LAX 2026-05-12 2026-05-19 --leave-before 13
 ```
 
 ```
 Launching browser...
 Browser ready.
-Searching NYC -> AUS  (2026-05-12 -> 2026-05-19)...
+Searching NYC -> LAX  (2026-05-12 -> 2026-05-19)...
+Los Angeles, California (LAX)  $144 round trip
+  JFK -> LAX  $144  JetBlue Airways         6:19 AM -> 9:28 AM
+  JFK -> LAX  $144  JetBlue Airways         7:30 AM -> 10:41 AM
+  JFK -> LAX  $144  Delta Air Lines         8:00 AM -> 11:05 AM
+  min outbound: $144
 
-Austin, Texas (AUS)  $198 round trip
-  JFK -> AUS  $99   American Airlines       8:00 AM -> 11:42 AM
-  JFK -> AUS  $109  Spirit Airlines         10:15 AM -> 2:01 PM
-  min outbound: $99
-
-  AUS -> JFK  $99   American Airlines       6:30 AM -> 2:45 PM
-  AUS -> JFK  $149  Delta Air Lines         8:00 AM -> 4:30 PM
-  min return:   $99
+  LAX -> JFK  $144  JetBlue Airways         7:05 AM -> 3:34 PM
+  LAX -> EWR  $144  United Airlines         4:30 PM -> 12:59 AM
+  LAX -> EWR  $144  United Airlines         9:00 PM -> 5:13 AM
+  min return:   $144
 
 Search complete. 1 destination with available flights.
 ```
@@ -221,25 +223,24 @@ deadhead NYC 2026-05-12
 Launching browser...
 Browser ready.
 Searching worldwide from NYC on 2026-05-12...
-Found 42 candidate destinations. Fetching flight details...
-[1/42] MCO -- 6 flight(s) from $88
-[2/42] CHS -- 3 flight(s) from $91
-[3/42] MIA -- 8 flight(s) from $104
-[4/42] BOS -- no qualifying flights
+Found 41 candidate destinations. Fetching flight details...
+[1/41] BNA -- 21 flight(s) from $69
+[2/41] PSP -- no qualifying flights
+[3/41] SMF -- 1 flight(s) from $174
+[4/41] CLT -- 38 flight(s) from $42
 ...
 
-Orlando, Florida (MCO)  $88 one-way
-  JFK -> MCO  $88   Spirit Airlines         6:15 AM -> 9:02 AM
-  JFK -> MCO  $103  Frontier Airlines       7:40 AM -> 10:20 AM
-  min outbound: $88
+Nashville, Tennessee (BNA)  $69 one-way
+  EWR -> BNA  $69   Spirit Airlines         5:50 PM -> 7:22 PM
+  min outbound: $69
 
-Charleston, South Carolina (CHS)  $91 one-way
-  EWR -> CHS  $91   Breeze Airways          7:25 AM -> 9:45 AM
-  min outbound: $91
+Charlotte, North Carolina (CLT)  $42 one-way
+  EWR -> CLT  $42   Spirit Airlines         8:30 PM -> 10:35 PM
+  min outbound: $42
 
 ...
 
-Search complete. 11 destinations with available flights.
+Search complete. 40 destinations with available flights.
 ```
 
 ### Filter worldwide results by price and departure time
@@ -256,15 +257,21 @@ deadhead NYC LAX 2026-05-12 2026-05-19 --travelers 2
 
 ### Exclude specific airports
 
+`--exclude` filters on the **departure** airport of each flight leg. For outbound flights this means the NYC-area airport you leave from; for return legs it filters on the arrival airport back home.
+
 ```bash
-deadhead NYC LON 2026-05-12 --exclude LHR,LGW
+deadhead NYC LON 2026-05-12 --exclude EWR,LGA
 ```
+
+This runs the search but drops any outbound flight that departs from EWR or LGA, leaving only JFK options.
 
 ### Save results to JSON and Markdown
 
 ```bash
 deadhead NYC LON 2026-05-12 --out-json results.json --out-md results.md
 ```
+
+> **Note:** When `--out-json` or `--out-md` is provided, flight results are written to the file and **suppressed on stdout**. Progress and summary messages still appear on stderr as usual.
 
 ### Batch: check every leg of a multi-city trip
 
@@ -288,15 +295,16 @@ Running 4 batch queries...
 
 [1/4] NYC -> LGW  (2026-05-12)
   1 destination(s) with available flights.
-London, England (LGW)  $279 one-way
-  JFK -> LGW  $279  Norse Atlantic UK  6:20 PM -> 6:20 AM
-  min outbound: $279
+London, England (LGW)  $278 one-way
+  JFK -> LGW  $278  Norse Atlantic UK       6:20 PM -> 6:20 AM
+  min outbound: $278
 
 [2/4] LGW -> ZRH  (2026-05-16)
   1 destination(s) with available flights.
-Zurich, Switzerland (ZRH)  $89 one-way
-  LGW -> ZRH  $89   easyJet            8:30 AM -> 11:40 AM
-  min outbound: $89
+Zurich, Switzerland (ZRH)  $136 one-way
+  LGW -> ZRH  $136  easyJet                 7:00 AM -> 9:50 AM
+  LGW -> ZRH  $214  Swiss                   9:25 AM -> 12:00 PM [HIDDEN-CITY to FRA]
+  min outbound: $136
 
 ...
 

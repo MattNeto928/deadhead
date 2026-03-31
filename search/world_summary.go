@@ -69,18 +69,18 @@ func GetAllFlightSummariesToCity(req *models.Request, cities []*CitySummary) []*
 		}
 
 		if len(summary.Leaving) == 0 {
-			if StatusLogger != nil {
+			if StatusLogger != nil && total > 1 {
 				StatusLogger("[%d/%d] %s -- no qualifying flights\n", i+1, total, city.Name)
 			}
 			continue
 		}
 		if !req.ReturningDay.IsZero() && len(summary.Returning) == 0 {
-			if StatusLogger != nil {
+			if StatusLogger != nil && total > 1 {
 				StatusLogger("[%d/%d] %s -- no qualifying return flights\n", i+1, total, city.Name)
 			}
 			continue
 		}
-		if StatusLogger != nil {
+		if StatusLogger != nil && total > 1 {
 			minPrice := summary.MinLeavingPrice
 			if !req.ReturningDay.IsZero() {
 				minPrice = summary.MinRoundTripPrice
