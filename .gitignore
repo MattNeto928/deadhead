@@ -15,9 +15,9 @@
 # vendor/
 
 # Compiled binary
-deadhead
-skl
-skiplagged
+/deadhead
+/skl
+/skiplagged
 
 # Output / scratch files
 *.xlsx

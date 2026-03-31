@@ -19,19 +19,103 @@ Other changes:
 - **Hidden-city detection** flagged in output
 - **One-way pricing fix:** the original passed a return date even for one-way queries, causing the endpoint to return round-trip prices
 - **Improved CLI:** flags work anywhere in the command
-- **URL encoding:** city codes are properly encoded in API requests
 - **Comprehensive test suite:** 65 unit tests with full mock coverage across all packages
 
 ---
 
 ## Install
 
-Requires Go 1.26+ and Google Chrome.
+### 1. Install Go
+
+Requires **Go 1.26+**.
+
+| Platform | Instructions |
+|----------|-------------|
+| macOS | `brew install go` or download from [go.dev/dl](https://go.dev/dl) |
+| Windows | Download the `.msi` installer from [go.dev/dl](https://go.dev/dl) and run it |
+| Linux | Download from [go.dev/dl](https://go.dev/dl) or use your package manager (`sudo apt install golang-go`, `sudo dnf install golang`, etc.) |
+
+Verify: `go version`
+
+### 2. Install Google Chrome
+
+deadhead launches a real Chrome window to pass Skiplagged's Cloudflare bot detection. Chrome must be installed - it does not need to be your default browser.
+
+**macOS**
+
+```bash
+brew install --cask google-chrome
+```
+Or download from [google.com/chrome](https://www.google.com/chrome). Chrome is found automatically via its standard app path.
+
+**Windows**
+
+Download and install from [google.com/chrome](https://www.google.com/chrome). Chrome is found automatically via its standard install path.
+
+**Linux**
+
+```bash
+# Debian / Ubuntu
+sudo apt update && sudo apt install -y google-chrome-stable
+
+# If google-chrome-stable is not in your repos, add the Google repo first:
+wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install ./google-chrome-stable_current_amd64.deb
+
+# Fedora / RHEL
+sudo dnf install google-chrome-stable
+
+# Arch
+yay -S google-chrome
+
+# Chromium also works (lighter alternative)
+sudo apt install chromium-browser     # Debian/Ubuntu
+sudo dnf install chromium             # Fedora
+```
+
+### 3. Install deadhead
+
+**Option A - go install (recommended, no clone needed)**
+
+```bash
+go install github.com/mattneto928/deadhead/cmd/deadhead@latest
+```
+
+This places `deadhead` (or `deadhead.exe` on Windows) in `$HOME/go/bin`. That directory must be in your `PATH` or the command won't be found after install.
+
+Add it if needed, then restart your terminal:
+
+```bash
+# macOS / Linux - add to ~/.zshrc or ~/.bashrc
+export PATH="$PATH:$HOME/go/bin"
+
+# Windows (PowerShell, permanent)
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$env:USERPROFILE\go\bin", "User")
+```
+
+Verify:
+```bash
+which deadhead      # macOS / Linux
+where deadhead      # Windows
+```
+
+**Option B - build from source**
 
 ```bash
 git clone https://github.com/MattNeto928/deadhead
 cd deadhead
-go build -o deadhead ./cmd/...
+
+# macOS / Linux
+make install          # builds and copies to /usr/local/bin/deadhead
+
+# macOS / Linux (without make)
+go build -o deadhead ./cmd/deadhead/
+sudo mv deadhead /usr/local/bin/
+
+# Windows (PowerShell)
+go build -o deadhead.exe .\cmd\deadhead\
+# Then move deadhead.exe to a folder already in your PATH, e.g.:
+Move-Item deadhead.exe "$env:USERPROFILE\go\bin\deadhead.exe"
 ```
 
 ---
@@ -145,7 +229,7 @@ PVG -> KIX  $312  Japan Airlines      1:15 PM -> 4:35 PM  [HIDDEN-CITY to HND]
 
 ### Unit tests
 
-All packages have full unit test coverage. No browser or network access required — HTTP calls are mocked with `httptest`.
+All packages have full unit test coverage. No browser or network access required - HTTP calls are mocked with `httptest`.
 
 ```bash
 go test ./...
@@ -153,7 +237,7 @@ go test ./...
 
 ### Integration tests
 
-Integration tests run against the real Skiplagged site and require Chrome and a network connection. They use a departure date one month from the current date so they never query the past.
+Integration tests run against the real Skiplagged site and require Chrome and a network connection. They always use a departure date one month from today so they never query the past.
 
 ```bash
 go test -v -tags integration ./integration/
