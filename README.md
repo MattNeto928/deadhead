@@ -19,6 +19,8 @@ Other changes:
 - **Hidden-city detection** flagged in output
 - **One-way pricing fix:** the original passed a return date even for one-way queries, causing the endpoint to return round-trip prices
 - **Improved CLI:** flags work anywhere in the command
+- **URL encoding:** city codes are properly encoded in API requests
+- **Comprehensive test suite:** 65 unit tests with full mock coverage across all packages
 
 ---
 
@@ -27,9 +29,9 @@ Other changes:
 Requires Go 1.26+ and Google Chrome.
 
 ```bash
-git clone https://github.com/mattneto928/deadhead
+git clone https://github.com/MattNeto928/deadhead
 cd deadhead
-go build -o deadhead cmd/main.go
+go build -o deadhead ./cmd/...
 ```
 
 ---
@@ -139,11 +141,37 @@ PVG -> KIX  $312  Japan Airlines      1:15 PM -> 4:35 PM  [HIDDEN-CITY to HND]
 
 ---
 
+## Testing
+
+### Unit tests
+
+All packages have full unit test coverage. No browser or network access required — HTTP calls are mocked with `httptest`.
+
+```bash
+go test ./...
+```
+
+### Integration tests
+
+Integration tests run against the real Skiplagged site and require Chrome and a network connection. They use a departure date one month from the current date so they never query the past.
+
+```bash
+go test -v -tags integration ./integration/
+```
+
+---
+
 ## Notes
 
 - On startup, Chrome opens a visible window to load `skiplagged.com` and pass the Cloudflare challenge. Headless mode trips the bot detection, so it runs with a real window. Once the challenge clears, the session cookies are extracted and all subsequent requests are plain HTTP.
 - There is no public Skiplagged API. This tool hits their internal search endpoint (`skiplagged.com/api/search.php`) that their own frontend uses. It returns JSON but is undocumented and subject to change.
 - Always omits the return date parameter. Passing one causes the endpoint to return round-trip pricing even for one-way queries.
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
