@@ -36,11 +36,11 @@ func flightMeetsReturningCriteria(flights map[string]clients.Flight, inbound cli
 	}
 
 	if req.Criteria.Return != nil {
-		if !req.Criteria.Return.After.IsZero() && flight.Segments[0].Arrival.Time.Before(req.Criteria.Return.After) {
-			return nil, fmt.Errorf("arrival home is too early in the day @ %s", flight.Segments[0].Arrival.Time.Format("03:04PM"))
+		if !req.Criteria.Return.After.IsZero() && flight.Segments[0].Departure.Time.Before(req.Criteria.Return.After) {
+			return nil, fmt.Errorf("return departs too early in the day @ %s", flight.Segments[0].Departure.Time.Format("03:04PM"))
 		}
-		if !req.Criteria.Return.Before.IsZero() && flight.Segments[0].Arrival.Time.After(req.Criteria.Return.Before) {
-			return nil, fmt.Errorf("arrival home is too late in the day @ %s", flight.Segments[0].Arrival.Time.Format("03:04PM"))
+		if !req.Criteria.Return.Before.IsZero() && flight.Segments[0].Departure.Time.After(req.Criteria.Return.Before) {
+			return nil, fmt.Errorf("return departs too late in the day @ %s", flight.Segments[0].Departure.Time.Format("03:04PM"))
 		}
 	}
 	for _, airport := range req.Criteria.ExcludeAirports {

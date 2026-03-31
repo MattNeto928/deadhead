@@ -91,6 +91,9 @@ func GetAllFlightSummariesToCity(req *models.Request, cities []*CitySummary) []*
 		time.Sleep(time.Second * 2)
 	}
 	sort.Slice(summaries, func(i, j int) bool {
+		if req.ReturningDay.IsZero() {
+			return summaries[i].MinLeavingPrice < summaries[j].MinLeavingPrice
+		}
 		return summaries[i].MinRoundTripPrice < summaries[j].MinRoundTripPrice
 	})
 	return summaries

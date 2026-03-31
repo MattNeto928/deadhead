@@ -308,6 +308,7 @@ func main() {
 			status.Printf("Searching %s -> %s  (%s -> %s)...\n", fromCity, dest, depart, returnDate)
 		}
 		summaries = []*search.CitySummary{{Name: dest}}
+		summaries = search.GetAllFlightSummariesToCity(req, summaries)
 	} else {
 		if oneWay {
 			status.Printf("Searching worldwide from %s on %s...\n", fromCity, depart)
@@ -324,10 +325,9 @@ func main() {
 			return
 		}
 		status.Printf("Found %d candidate destinations. Fetching flight details...\n", len(summaries))
-	}
-
-	if !*skipWorldwide {
-		summaries = search.GetAllFlightSummariesToCity(req, summaries)
+		if !*skipWorldwide {
+			summaries = search.GetAllFlightSummariesToCity(req, summaries)
+		}
 	}
 
 	printSummaries(summaries, oneWay)
@@ -393,6 +393,7 @@ func handleBatch() {
 		var summaries []*search.CitySummary
 		if q.To != "" {
 			summaries = []*search.CitySummary{{Name: q.To}}
+			summaries = search.GetAllFlightSummariesToCity(req, summaries)
 		} else {
 			summaries, err = search.GetCitySummaryLeavingCity(req)
 			if err != nil {
@@ -400,10 +401,9 @@ func handleBatch() {
 				continue
 			}
 			status.Printf("  Found %d candidate destinations.\n", len(summaries))
-		}
-
-		if !q.SkipWorldwide {
-			summaries = search.GetAllFlightSummariesToCity(req, summaries)
+			if !q.SkipWorldwide {
+				summaries = search.GetAllFlightSummariesToCity(req, summaries)
+			}
 		}
 
 		oneWay := q.Return == ""

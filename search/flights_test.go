@@ -253,8 +253,8 @@ func TestFlightMeetsLeavingCriteria_NilLeaveCriteria_NoPanic(t *testing.T) {
 func TestFlightMeetsReturningCriteria_Passes(t *testing.T) {
 	// Use a round-trip request so that WithReturningCriteria bases its times on ReturningDay.
 	req, _ := models.NewRequest("NYC", "LAX", "2026-05-12", "2026-05-19", 1)
-	req.WithReturningCriteria(8, 20) // arrive between 8am and 8pm on May 19
-	// Flight departs LAX at 10am May 19 and arrives JFK at 3pm — within window.
+	req.WithReturningCriteria(8, 20) // depart between 8am and 8pm on May 19
+	// Flight departs LAX at 10am May 19 — within window.
 	depTime := time.Date(2026, 5, 19, 10, 0, 0, 0, time.Local)
 	key, flight := makeFlight("r1", "LAX", "JFK", depTime)
 	flights := map[string]clients.Flight{key: flight}
@@ -269,40 +269,36 @@ func TestFlightMeetsReturningCriteria_Passes(t *testing.T) {
 	}
 }
 
-func TestFlightMeetsReturningCriteria_ArrivalTooEarly(t *testing.T) {
+func TestFlightMeetsReturningCriteria_DepartureTooEarly(t *testing.T) {
 	// Use a round-trip request so ReturningDay is set.
 	req2, _ := models.NewRequest("NYC", "LAX", "2026-05-12", "2026-05-19", 1)
-	req2.WithReturningCriteria(18, 23) // arrive after 6pm
+	req2.WithReturningCriteria(18, 23) // depart after 6pm
 
-	// Flight arrives at 3pm local — too early.
-	arrTime := time.Date(2026, 5, 19, 15, 0, 0, 0, time.Local)
-	depTime := arrTime.Add(-5 * time.Hour)
+	// Flight departs LAX at 10am — too early.
+	depTime := time.Date(2026, 5, 19, 10, 0, 0, 0, time.Local)
 	key, flight := makeFlight("r1", "LAX", "JFK", depTime)
-	// Arrival is set by makeFlight as depTime+5h = 8pm... actually let me override.
-	flight.Segments[0].Arrival.Time = arrTime
 	flights := map[string]clients.Flight{key: flight}
 	bound := clients.InOutBoundFlight{Flight: key, OneWayPrice: 10000}
 
 	_, err := flightMeetsReturningCriteria(flights, bound, req2)
 	if err == nil {
-		t.Fatal("expected error for arrival too early")
+		t.Fatal("expected error for departure too early")
 	}
 }
 
-func TestFlightMeetsReturningCriteria_ArrivalTooLate(t *testing.T) {
+func TestFlightMeetsReturningCriteria_DepartureTooLate(t *testing.T) {
 	req2, _ := models.NewRequest("NYC", "LAX", "2026-05-12", "2026-05-19", 1)
-	req2.WithReturningCriteria(6, 14) // arrive before 2pm
+	req2.WithReturningCriteria(6, 14) // depart before 2pm
 
-	// Flight arrives at 6pm — too late.
-	arrTime := time.Date(2026, 5, 19, 18, 0, 0, 0, time.Local)
-	key, flight := makeFlight("r1", "LAX", "JFK", arrTime.Add(-5*time.Hour))
-	flight.Segments[0].Arrival.Time = arrTime
+	// Flight departs LAX at 6pm — too late.
+	depTime := time.Date(2026, 5, 19, 18, 0, 0, 0, time.Local)
+	key, flight := makeFlight("r1", "LAX", "JFK", depTime)
 	flights := map[string]clients.Flight{key: flight}
 	bound := clients.InOutBoundFlight{Flight: key, OneWayPrice: 10000}
 
 	_, err := flightMeetsReturningCriteria(flights, bound, req2)
 	if err == nil {
-		t.Fatal("expected error for arrival too late")
+		t.Fatal("expected error for departure too late")
 	}
 }
 
