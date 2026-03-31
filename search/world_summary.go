@@ -47,23 +47,45 @@ func GetCitySummaryLeavingCity(req *models.Request) ([]*CitySummary, error) {
 	return buildWorldSummaries(req, manifest), nil
 }
 
+// StatusLogger is called by GetAllFlightSummariesToCity to report per-city progress.
+// Set this to a function that writes to stderr (e.g. log.New(os.Stderr,"",0).Printf).
+// If nil, progress is silenced.
+var StatusLogger func(format string, args ...any)
+
 // GetAllFlightSummariesToCity fetches detailed flight options for each city in the list,
 // filters out cities with no qualifying flights, and returns results sorted by price.
 func GetAllFlightSummariesToCity(req *models.Request, cities []*CitySummary) []*CitySummary {
 	summaries := []*CitySummary{}
-	for _, city := range cities {
+	total := len(cities)
+	for i, city := range cities {
 		req.TripCity = city.Name
 		summary, err := GetFlightSummaryToCity(req)
 		if err != nil {
 			log.Println(err)
+			if StatusLogger != nil {
+				StatusLogger("[%d/%d] %s -- error: %v\n", i+1, total, city.Name, err)
+			}
 			continue
 		}
 
 		if len(summary.Leaving) == 0 {
+			if StatusLogger != nil {
+				StatusLogger("[%d/%d] %s -- no qualifying flights\n", i+1, total, city.Name)
+			}
 			continue
 		}
 		if !req.ReturningDay.IsZero() && len(summary.Returning) == 0 {
+			if StatusLogger != nil {
+				StatusLogger("[%d/%d] %s -- no qualifying return flights\n", i+1, total, city.Name)
+			}
 			continue
+		}
+		if StatusLogger != nil {
+			minPrice := summary.MinLeavingPrice
+			if !req.ReturningDay.IsZero() {
+				minPrice = summary.MinRoundTripPrice
+			}
+			StatusLogger("[%d/%d] %s -- %d flight(s) from $%d\n", i+1, total, city.Name, len(summary.Leaving), minPrice)
 		}
 		summaries = append(summaries, summary)
 		time.Sleep(time.Second * 2)

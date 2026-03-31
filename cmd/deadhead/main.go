@@ -48,10 +48,18 @@ type BatchQuery struct {
 	SkipWorldwide bool   `json:"skip_worldwide,omitempty"`
 }
 
-var logger *log.Logger
+// logger writes flight results to stdout (silenced when saving to a file).
+// status writes progress and summary lines to stderr (always visible).
+var (
+	logger *log.Logger
+	status *log.Logger
+)
 
 func init() {
+	log.SetFlags(0) // suppress timestamps from the default logger used in sub-packages
 	logger = log.New(os.Stdout, "", 0)
+	status = log.New(os.Stderr, "", 0)
+	search.StatusLogger = status.Printf
 }
 
 // boolFlag is the interface Go's flag package uses internally to detect bool flags.
@@ -102,9 +110,9 @@ func usage() {
 
 Arguments:
   FROM    origin city or airport code (e.g. NYC, JFK)
-  TO      destination city or airport code (e.g. LON, LHR) — optional, omit for worldwide search
+  TO      destination city or airport code (e.g. LON, LHR) - optional, omit for worldwide search
   DEPART  departure date (2026-05-12)
-  RETURN  return date (2026-05-20) — optional, omit for one-way
+  RETURN  return date (2026-05-20) - optional, omit for one-way
 
 Examples:
   deadhead NYC 2026-05-12                          one-way, worldwide
@@ -152,6 +160,11 @@ func saveMarkdown(summaries []*search.CitySummary) error {
 }
 
 func printSummaries(summaries []*search.CitySummary, oneWay bool) {
+	if len(summaries) == 0 {
+		status.Println("No flights found matching your criteria. Try relaxing your filters.")
+		return
+	}
+
 	for _, s := range summaries {
 		if oneWay {
 			logger.Printf("%s (%s)  $%d one-way\n", s.FullName, s.Name, s.MinLeavingPrice)
@@ -167,7 +180,7 @@ func printSummaries(summaries []*search.CitySummary, oneWay bool) {
 				tag = fmt.Sprintf(" (+%d layovers)", f.Layovers)
 			}
 
-			logger.Printf("  %s → %s  $%d  %-22s  %s → %s%s\n",
+			logger.Printf("  %s -> %s  $%d  %-22s  %s -> %s%s\n",
 				f.Departure.Airport,
 				f.Arrival.Airport,
 				f.Price,
@@ -189,7 +202,7 @@ func printSummaries(summaries []*search.CitySummary, oneWay bool) {
 					tag = fmt.Sprintf(" (+%d layovers)", f.Layovers)
 				}
 
-				logger.Printf("  %s → %s  $%d  %-22s  %s → %s%s\n",
+				logger.Printf("  %s -> %s  $%d  %-22s  %s -> %s%s\n",
 					f.Departure.Airport,
 					f.Arrival.Airport,
 					f.Price,
@@ -202,6 +215,12 @@ func printSummaries(summaries []*search.CitySummary, oneWay bool) {
 			logger.Printf("  min return:   $%d\n", s.MinReturningPrice)
 		}
 		logger.Println()
+	}
+
+	if len(summaries) == 1 {
+		status.Printf("Search complete. 1 destination with available flights.\n")
+	} else {
+		status.Printf("Search complete. %d destinations with available flights.\n", len(summaries))
 	}
 }
 
@@ -217,14 +236,19 @@ func main() {
 	if *proxy != "" {
 		os.Setenv("HTTP_PROXY", *proxy)
 	}
+
+	// Silence the flight-data logger when saving to a file so results don't
+	// appear on stdout AND in the file. Status messages still go to stderr.
 	if *outputJSON != "" || *outputMD != "" {
 		logger.SetOutput(io.Discard)
 	}
 
+	status.Println("Launching browser...")
 	if err := clients.Init(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+	status.Println("Browser ready.")
 
 	if *batchFile != "" {
 		handleBatch()
@@ -278,13 +302,28 @@ func main() {
 
 	var summaries []*search.CitySummary
 	if dest != "" {
+		if oneWay {
+			status.Printf("Searching %s -> %s on %s...\n", fromCity, dest, depart)
+		} else {
+			status.Printf("Searching %s -> %s  (%s -> %s)...\n", fromCity, dest, depart, returnDate)
+		}
 		summaries = []*search.CitySummary{{Name: dest}}
 	} else {
+		if oneWay {
+			status.Printf("Searching worldwide from %s on %s...\n", fromCity, depart)
+		} else {
+			status.Printf("Searching worldwide from %s  (%s -> %s)...\n", fromCity, depart, returnDate)
+		}
 		summaries, err = search.GetCitySummaryLeavingCity(req)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+		if len(summaries) == 0 {
+			status.Println("No destinations found. The API returned no results for this route.")
+			return
+		}
+		status.Printf("Found %d candidate destinations. Fetching flight details...\n", len(summaries))
 	}
 
 	if !*skipWorldwide {
@@ -293,13 +332,19 @@ func main() {
 
 	printSummaries(summaries, oneWay)
 
-	if err := saveJSON(req, summaries); err != nil {
-		fmt.Fprintf(os.Stderr, "error saving JSON: %v\n", err)
-		os.Exit(1)
+	if *outputJSON != "" {
+		if err := saveJSON(req, summaries); err != nil {
+			fmt.Fprintf(os.Stderr, "error saving JSON: %v\n", err)
+			os.Exit(1)
+		}
+		status.Printf("Results saved to %s\n", *outputJSON)
 	}
-	if err := saveMarkdown(summaries); err != nil {
-		fmt.Fprintf(os.Stderr, "error saving markdown: %v\n", err)
-		os.Exit(1)
+	if *outputMD != "" {
+		if err := saveMarkdown(summaries); err != nil {
+			fmt.Fprintf(os.Stderr, "error saving markdown: %v\n", err)
+			os.Exit(1)
+		}
+		status.Printf("Results saved to %s\n", *outputMD)
 	}
 }
 
@@ -316,19 +361,24 @@ func handleBatch() {
 		os.Exit(1)
 	}
 
+	status.Printf("Running %d batch queries...\n", len(queries))
+
 	var allSummaries []*search.CitySummary
-	// Aggregate all queries
 	for i, q := range queries {
-		logger.Printf("Processing batch query %d/%d: %s -> %s (%s)\n", i+1, len(queries), q.From, q.To, q.Depart)
-		
+		dest := q.To
+		if dest == "" {
+			dest = "worldwide"
+		}
+		status.Printf("\n[%d/%d] %s -> %s  (%s)\n", i+1, len(queries), q.From, dest, q.Depart)
+
 		travelersCount := q.Travelers
 		if travelersCount == 0 {
 			travelersCount = 1
 		}
-		
+
 		req, err := models.NewRequest(q.From, q.To, q.Depart, q.Return, travelersCount)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error creating request for query %d: %v\n", i+1, err)
+			fmt.Fprintf(os.Stderr, "  error creating request: %v\n", err)
 			continue
 		}
 		var excludes []string
@@ -346,9 +396,10 @@ func handleBatch() {
 		} else {
 			summaries, err = search.GetCitySummaryLeavingCity(req)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error fetching passing leaving city for query %d: %v\n", i+1, err)
+				fmt.Fprintf(os.Stderr, "  error fetching destinations: %v\n", err)
 				continue
 			}
+			status.Printf("  Found %d candidate destinations.\n", len(summaries))
 		}
 
 		if !q.SkipWorldwide {
@@ -356,9 +407,16 @@ func handleBatch() {
 		}
 
 		oneWay := q.Return == ""
+		if len(summaries) == 0 {
+			status.Println("  No flights found matching your criteria.")
+		} else {
+			status.Printf("  %d destination(s) with available flights.\n", len(summaries))
+		}
 		printSummaries(summaries, oneWay)
 		allSummaries = append(allSummaries, summaries...)
 	}
+
+	status.Printf("\nBatch complete. %d total result(s) across all queries.\n", len(allSummaries))
 
 	// Batch results are saved with an empty request envelope; the per-query details
 	// are visible in the printed output above.
@@ -366,9 +424,13 @@ func handleBatch() {
 		dummyReq := &models.Request{}
 		if err := saveJSON(dummyReq, allSummaries); err != nil {
 			fmt.Fprintf(os.Stderr, "error saving JSON: %v\n", err)
+		} else if *outputJSON != "" {
+			status.Printf("Results saved to %s\n", *outputJSON)
 		}
 		if err := saveMarkdown(allSummaries); err != nil {
 			fmt.Fprintf(os.Stderr, "error saving markdown: %v\n", err)
+		} else if *outputMD != "" {
+			status.Printf("Results saved to %s\n", *outputMD)
 		}
 	}
 }
